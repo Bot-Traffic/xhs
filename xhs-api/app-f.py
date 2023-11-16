@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
-from playwright.sync_api import sync_playwright
+import asyncio
+from playwright.async_api import async_playwright 
 import time
 
 
@@ -8,6 +9,8 @@ app = FastAPI()
 global_a1 = ""
 
 stealth_js_path = "stealth.min.js"
+browser_context = None 
+context_page = None
 
 def get_context_page(instance, stealth_js_path):
     chromium = instance.chromium
@@ -17,24 +20,6 @@ def get_context_page(instance, stealth_js_path):
     page = context.new_page()
     return context, page
 
-
-print("正在启动 playwright")
-playwright = sync_playwright().start()
-
-browser_context, context_page = get_context_page(playwright, stealth_js_path)
-context_page.goto("https://www.xiaohongshu.com")
-print("正在跳转至小红书首页")
-time.sleep(5)
-
-context_page.reload()
-time.sleep(1)
-
-cookies = browser_context.cookies()
-for cookie in cookies:
-    if cookie["name"] == "a1":
-        global_a1 = cookie["value"]
-        print("当前浏览器中 a1 值为：" + global_a1 + "，请将您的 cookie 中的 a1 也设置成一样，方可签名成功")
-print("跳转小红书首页成功，等待调用")
 
 
 def sign(uri, data, a1, web_session):
@@ -52,6 +37,25 @@ def sign(uri, data, a1, web_session):
         "x-t": str(encrypt_params["X-t"])
     }
 
+async def global_setup():
+    global global_a1, browser_context, context_page
+    async with async_playwright() as p:
+        browser_context, context_page = await get_context_page(p, stealth_js_path)
+        await context_page.goto("https://www.xiaohongshu.com")
+        # Replace time.sleep with asyncio.sleep in async context
+        await asyncio.sleep(5)
+        await context_page.reload()
+        await asyncio.sleep(1)
+        cookies = await browser_context.cookies()
+        for cookie in cookies:
+            if cookie["name"] == "a1":
+                global_a1 = cookie["value"]
+                print(f"当前浏览器中 a1 值为：{global_a1}，请将您的 cookie 中的 a1 也设置成一样，方可签名成功")
+
+
+@app.on_event("startup")
+async def startup_event():
+    await global_setup()
 
 @app.post("/sign")
 async def hello_world(request: Request):
