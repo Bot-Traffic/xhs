@@ -8,6 +8,7 @@ global_a1 = ""
 stealth_js_path = "stealth.min.js"
 browser_context = None
 context_page = None
+playwright = None
 
 async def get_context_page(instance, stealth_js_path):
     chromium = instance.chromium
@@ -26,18 +27,18 @@ async def sign(uri, data, a1, web_session):
     }
 
 async def global_setup():
-    global global_a1, browser_context, context_page
-    async with async_playwright() as p:
-        browser_context, context_page = await get_context_page(p, stealth_js_path)
-        await context_page.goto("https://www.xiaohongshu.com")
-        await asyncio.sleep(5)
-        await context_page.reload()
-        await asyncio.sleep(1)
-        cookies = await browser_context.cookies()
-        for cookie in cookies:
-            if cookie["name"] == "a1":
-                global_a1 = cookie["value"]
-                print(f"当前浏览器中 a1 值为：{global_a1}，请将您的 cookie 中的 a1 也设置成一样，方可签名成功")
+    global global_a1, browser_context, context_page, playwright
+    playwright = await async_playwright().start()
+    browser_context, context_page = await get_context_page(playwright, stealth_js_path)
+    await context_page.goto("https://www.xiaohongshu.com")
+    await asyncio.sleep(5)
+    await context_page.reload()
+    await asyncio.sleep(1)
+    cookies = await browser_context.cookies()
+    for cookie in cookies:
+        if cookie["name"] == "a1":
+            global_a1 = cookie["value"]
+            print(f"当前浏览器中 a1 值为：{global_a1}，请将您的 cookie 中的 a1 也设置成一样，方可签名成功")
 
 @app.on_event("startup")
 async def startup_event():
