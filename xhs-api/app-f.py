@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Request
 import asyncio
 from playwright.async_api import async_playwright 
-import time
 
 
 app = FastAPI()
@@ -12,17 +11,17 @@ stealth_js_path = "stealth.min.js"
 browser_context = None 
 context_page = None
 
-def get_context_page(instance, stealth_js_path):
+async def get_context_page(instance, stealth_js_path):
     chromium = instance.chromium
-    browser = chromium.launch(headless=True)
-    context = browser.new_context()
-    context.add_init_script(path=stealth_js_path)
-    page = context.new_page()
+    browser = await chromium.launch(headless=True)
+    context = await browser.new_context()
+    await context.add_init_script(path=stealth_js_path)
+    page = await context.new_page()
     return context, page
 
 
 
-def sign(uri, data, a1, web_session):
+async def sign(uri, data, a1, web_session):
     global global_a1
     # if a1 != global_a1:
     #     browser_context.add_cookies([
@@ -31,7 +30,7 @@ def sign(uri, data, a1, web_session):
     #     context_page.reload()
     #     time.sleep(1)
     #     global_a1 = a1
-    encrypt_params = context_page.evaluate("([url, data]) => window._webmsxyw(url, data)", [uri, data])
+    encrypt_params = await context_page.evaluate("([url, data]) => window._webmsxyw(url, data)", [uri, data])
     return {
         "x-s": encrypt_params["X-s"],
         "x-t": str(encrypt_params["X-t"])
@@ -64,7 +63,7 @@ async def hello_world(request: Request):
     data = json["data"]
     a1 = json["a1"]
     web_session = json["web_session"]
-    return sign(uri, data, a1, web_session)
+    return await sign(uri, data, a1, web_session)
 
 
 if __name__ == '__main__':
