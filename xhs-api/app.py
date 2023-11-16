@@ -38,13 +38,13 @@ print("跳转小红书首页成功，等待调用")
 
 def sign(uri, data, a1, web_session):
     global global_a1
-    if a1 != global_a1:
-        browser_context.add_cookies([
-            {'name': 'a1', 'value': a1, 'domain': ".xiaohongshu.com", 'path': "/"}
-        ])
-        context_page.reload()
-        time.sleep(1)
-        global_a1 = a1
+    # if a1 != global_a1:
+    #     browser_context.add_cookies([
+    #         {'name': 'a1', 'value': a1, 'domain': ".xiaohongshu.com", 'path': "/"}
+    #     ])
+    #     context_page.reload()
+    #     time.sleep(1)
+    #     global_a1 = a1
     encrypt_params = context_page.evaluate("([url, data]) => window._webmsxyw(url, data)", [uri, data])
     return {
         "x-s": encrypt_params["X-s"],
